@@ -22,7 +22,7 @@ A aplicação utiliza Python, OpenCV e Tkinter para carregar imagens e visualiza
 
 ## 🧭 Como usar
 
-1. **Entrada da imagem:** clique em **Escolher arquivo** ou em **Câmera ao vivo** (a tela mostra só a imagem da câmera; enquadre a folha e use **Capturar quadro** para congelar e processar).
+1. **Entrada da imagem:** clique em **Escolher arquivo** ou em **Câmera ao vivo** (a tela mostra só a imagem da câmera, já na vertical; enquadre a folha e use **Capturar quadro** para congelar e processar). Se a imagem aparecer de lado ou de cabeça para baixo, use os botões de **Girar imagem** com a câmera ligada; o giro padrão fica em `GIRO_CAMERA_GRAUS` (`nucleo/configuracao.py`).
 2. Se a foto estiver de cabeça para baixo ou de lado, use **Girar imagem** (90° esq., 180°, 90° dir.). Os resultados anteriores são limpos.
 3. Clique em **Processar**. O documento é detectado, corrigido e lido pelo OCR em segundo plano, com a barra de progresso na lateral.
    - Se o contorno estiver errado (ou não aparecer), clique em **Ajustar cantos** e arraste os 4 círculos até os cantos da folha.

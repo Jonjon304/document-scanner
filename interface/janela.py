@@ -218,9 +218,20 @@ class AplicativoScanner:
         O giro é feito na imagem original, antes da detecção, e é sem perdas
         (múltiplos de 90°). Os resultados anteriores deixam de valer, então são
         limpos; clique em Processar para analisar a imagem na nova orientação.
+
+        Com a câmera ligada, quem gira é a imagem da câmera (vale para a prévia
+        e para o quadro capturado).
         """
-        if (self.estado.imagem is None or self.processador.ocupado
-                or self.camera.ativa):
+        if self.processador.ocupado:
+            return
+        if self.camera.ativa:
+            graus = {cv2.ROTATE_90_CLOCKWISE: 90, cv2.ROTATE_180: 180,
+                     cv2.ROTATE_90_COUNTERCLOCKWISE: 270}[codigo]
+            self.camera.girar(graus)
+            self.painel.definir_status(f"Câmera girada {descricao}. Enquadre a folha e "
+                                       "clique em Capturar quadro.")
+            return
+        if self.estado.imagem is None:
             return
         self.estado.imagem = cv2.rotate(self.estado.imagem, codigo)
         self._limpar_resultados()

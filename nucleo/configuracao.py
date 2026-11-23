@@ -21,6 +21,12 @@ INDICE_CAMERA = 0
 # quadros por segundo. Aumente (ex.: 50 ou 66) se a máquina for lenta.
 INTERVALO_EXIBICAO_MS = 33
 
+# Giro (graus, sentido horário) aplicado à imagem da câmera: 0, 90, 180 ou 270.
+# 90 deixa a imagem na VERTICAL (em pé), melhor para enquadrar uma folha. Se a
+# imagem aparecer de cabeça para baixo, use 270. Durante a câmera ao vivo, os
+# botões de "Girar imagem" também ajustam esse giro.
+GIRO_CAMERA_GRAUS = 90
+
 # O documento precisa ocupar pelo menos 15% da foto. Isso evita escolher um
 # retângulo pequeno, como a foto 3x4 dentro de uma identidade.
 AREA_MINIMA_RELATIVA = 0.15

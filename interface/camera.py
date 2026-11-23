@@ -4,7 +4,8 @@ A prévia NÃO processa nada. Antes, cada quadro passava pela detecção e por
 todas as etapas (~8 vezes por segundo), o que gastava processador à toa: o
 resultado só interessa no quadro que o usuário escolhe. Agora o fluxo é:
 
-    câmera ligada   uma tela única mostra a imagem ao vivo;
+    câmera ligada   uma tela única mostra a imagem ao vivo, girada para ficar
+                    na vertical (ver GIRO_CAMERA_GRAUS em nucleo/configuracao.py);
     Capturar quadro congela a imagem atual, desliga a câmera e só então roda
                     o processamento completo (detecção, perspectiva, OCR).
 
@@ -24,7 +25,14 @@ from threading import Event, Lock, Thread
 
 import cv2
 
-from nucleo.configuracao import INDICE_CAMERA, INTERVALO_EXIBICAO_MS
+from nucleo.configuracao import GIRO_CAMERA_GRAUS, INDICE_CAMERA, INTERVALO_EXIBICAO_MS
+
+# Giro em graus (sentido horário) -> código do cv2.rotate (0 = sem giro).
+CODIGOS_GIRO = {
+    90: cv2.ROTATE_90_CLOCKWISE,
+    180: cv2.ROTATE_180,
+    270: cv2.ROTATE_90_COUNTERCLOCKWISE,
+}
 
 
 class ControladorCamera:
@@ -58,6 +66,14 @@ class ControladorCamera:
         self._falha = None           # (titulo, mensagem) se a leitura falhou
 
         self._ultimo_quadro_exibido = 0
+
+        # Giro aplicado a cada quadro (graus, sentido horário). Fica guardado
+        # entre uma abertura e outra da câmera.
+        self.giro_graus = GIRO_CAMERA_GRAUS % 360
+
+    def girar(self, graus):
+        """Soma `graus` (90, 180 ou 270, sentido horário) ao giro da imagem da câmera."""
+        self.giro_graus = (self.giro_graus + graus) % 360
 
     @property
     def ativa(self):
@@ -140,6 +156,10 @@ class ControladorCamera:
                                        "A câmera foi aberta, mas não foi possível "
                                        "receber a imagem.")
                     return
+                # Gira já na leitura: a prévia e o quadro capturado saem iguais.
+                codigo = CODIGOS_GIRO.get(self.giro_graus)
+                if codigo is not None:
+                    quadro = cv2.rotate(quadro, codigo)
                 with self._trava:
                     self._quadro = quadro
                     self._numero_quadro += 1
