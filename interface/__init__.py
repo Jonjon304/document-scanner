@@ -12,7 +12,7 @@ Organização (cada arquivo tem uma responsabilidade):
     painel_lateral    barra da esquerda: arquivo, câmera, girar, status, avaliação do OCR
     area_principal    abas, grade de imagens, botões de ação e caixa de texto
     visualizacao      a grade de cartões com as imagens (redimensiona sozinha)
-    camera            câmera ao vivo com prévia da detecção
+    camera            câmera ao vivo (só a prévia; processa ao capturar)
     processamento     processamento em segundo plano (thread + fila)
     dialogo_cantos    janela "Ajustar cantos"
 """

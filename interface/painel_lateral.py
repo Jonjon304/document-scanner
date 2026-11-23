@@ -138,5 +138,6 @@ class PainelLateral(tk.Frame):
         self.botao_camera.config(text="Fechar câmera" if camera_ativa else "Câmera ao vivo")
         definir_estado_botao(self.botao_capturar, not ocupado and camera_ativa)
         definir_estado_botao(self.botao_ajustar, not ocupado and tem_imagem)
+        # Com a câmera ligada, os botões de girar giram a imagem da câmera.
         for botao in self.botoes_girar:
-            definir_estado_botao(botao, not ocupado and tem_imagem)
+            definir_estado_botao(botao, not ocupado and (tem_imagem or camera_ativa))
