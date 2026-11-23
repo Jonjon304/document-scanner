@@ -34,6 +34,7 @@ from interface.estado import Estado
 from interface.painel_lateral import PainelLateral
 from interface.processamento import ProcessadorDocumento
 from interface.tema import CARTOES_PROCESSO, COR_FUNDO, aplicar_tema_ttk
+from nucleo.imagem import desenhar_contorno
 from nucleo.ocr import CONFIANCA_MINIMA
 from nucleo.pdf import gerar_pdf_pesquisavel
 
@@ -91,6 +92,7 @@ class AplicativoScanner:
         )
 
         self._gerando_pdf = False   # True enquanto o PDF é gerado em segundo plano
+        self._dica_camera = None    # última dica mostrada no status durante a câmera
         self._atualizar_botoes()
 
     # ------------------------------------------------------------ estado dos botões
@@ -136,6 +138,7 @@ class AplicativoScanner:
         self.estado.nome_arquivo = ""
         self._limpar_resultados()
         self.area.modo_camera(True)   # tela única: só a imagem da câmera
+        self._dica_camera = None
         self.area.limpar_imagens(("original",), "Inicializando câmera…")
 
         self.painel.definir_status("Câmera iniciada. Enquadre a folha com os quatro cantos "
@@ -170,9 +173,18 @@ class AplicativoScanner:
         # Se a detecção falhar, dá para marcar a folha com Ajustar cantos.
         self._iniciar_processamento(None)
 
-    def _ao_quadro_camera(self, quadro):
-        """Chegou um quadro novo da câmera: só mostra a imagem (sem processar)."""
-        self.area.mostrar("original", quadro)
+    def _ao_quadro_camera(self, quadro, cantos):
+        """Chegou um quadro novo: mostra a imagem com o contorno, se a folha foi achada."""
+        if cantos is not None:
+            self.area.mostrar("original", desenhar_contorno(quadro, cantos))
+            dica = "Documento detectado. Clique em Capturar quadro para digitalizar."
+        else:
+            self.area.mostrar("original", quadro)
+            dica = "Aponte para uma folha com os quatro cantos visíveis."
+        # Só troca o texto quando a dica muda (não sobrescreve a cada quadro).
+        if dica != self._dica_camera:
+            self._dica_camera = dica
+            self.painel.definir_status(dica)
 
     def _ao_falha_camera(self, titulo, mensagem):
         """A câmera não abriu ou falhou durante o uso (já está desligada)."""

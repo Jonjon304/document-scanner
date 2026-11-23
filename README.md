@@ -16,13 +16,13 @@ A aplicação utiliza Python, OpenCV e Tkinter para carregar imagens e visualiza
 - ⏹️ **Ajuste manual dos quatro cantos** dá a opção de ajustar os cantos da imagem manualmente, caso o documento não seja detectado.
 - 🔤 **OCR com Tesseract:** extrai o texto testando versões da imagem e modos de leitura.
 - 🔄 **Girar a imagem:** botões de 90° e 180° para fotos de cabeça para baixo ou de lado.
-- 📷 **Câmera ao vivo:** uma tela única mostra só a imagem da câmera, para enquadrar a folha. Nada é processado ao vivo: ao clicar em **Capturar quadro**, a imagem é congelada e o processamento completo (detecção, perspectiva e OCR) roda uma única vez sobre ela. A leitura da câmera roda numa thread separada, então a janela não trava.
+- 📷 **Câmera ao vivo:** uma tela única mostra a imagem da câmera com o **contorno da folha detectado em tempo real**, para ajudar a enquadrar. Ao vivo roda só a detecção das bordas (versão rápida, ~10 vezes por segundo); ao clicar em **Capturar quadro**, a imagem é congelada e o processamento completo (detecção, perspectiva e OCR) roda uma única vez sobre ela. A leitura da câmera e a detecção rodam em threads separadas, então a janela não trava (ritmos ajustáveis em `nucleo/configuracao.py`).
 - 📑 **PDF pesquisável:** exporta o documento digitalizado como PDF com a imagem colorida e o texto do OCR invisível por cima: o arquivo fica igual ao papel, mas dá para buscar (Ctrl+F), selecionar e copiar o texto.
 - 🖥️ **Interface gráfica:** abas para ver as etapas do processamento, imagens que acompanham o tamanho da janela e caixa de texto editável.
 
 ## 🧭 Como usar
 
-1. **Entrada da imagem:** clique em **Escolher arquivo** ou em **Câmera ao vivo** (a tela mostra só a imagem da câmera, já na vertical; enquadre a folha e use **Capturar quadro** para congelar e processar). Se a imagem aparecer de lado ou de cabeça para baixo, use os botões de **Girar imagem** com a câmera ligada; o giro padrão fica em `GIRO_CAMERA_GRAUS` (`nucleo/configuracao.py`).
+1. **Entrada da imagem:** clique em **Escolher arquivo** ou em **Câmera ao vivo** (a tela mostra a imagem da câmera, já na vertical, com o contorno da folha quando ela é encontrada; enquadre a folha e use **Capturar quadro** para congelar e processar). Se a imagem aparecer de lado ou de cabeça para baixo, use os botões de **Girar imagem** com a câmera ligada; o giro padrão fica em `GIRO_CAMERA_GRAUS` (`nucleo/configuracao.py`).
 2. Se a foto estiver de cabeça para baixo ou de lado, use **Girar imagem** (90° esq., 180°, 90° dir.). Os resultados anteriores são limpos.
 3. Clique em **Processar**. O documento é detectado, corrigido e lido pelo OCR em segundo plano, com a barra de progresso na lateral.
    - Se o contorno estiver errado (ou não aparecer), clique em **Ajustar cantos** e arraste os 4 círculos até os cantos da folha.

@@ -14,12 +14,21 @@ LADO_DETECCAO = 500
 INDICE_CAMERA = 0
 
 # --- Prévia da câmera ao vivo -------------------------------------------------
-# A prévia só mostra a imagem (nenhum processamento roda ao vivo). O
-# processamento completo acontece quando o usuário clica em Capturar quadro.
+# Ao vivo roda só a detecção das bordas da folha (para desenhar o contorno).
+# O processamento completo acontece quando o usuário clica em Capturar quadro.
 
 # Intervalo (ms) entre atualizações da imagem na tela. 33 ms = no máximo ~30
 # quadros por segundo. Aumente (ex.: 50 ou 66) se a máquina for lenta.
 INTERVALO_EXIBICAO_MS = 33
+
+# Intervalo mínimo (s) entre duas detecções da folha. 0,1 s = no máximo ~10
+# por segundo (cada uma leva ~20 ms). Aumentar economiza processador; diminuir
+# deixa o contorno mais "colado" na folha em movimento.
+INTERVALO_DETECCAO_S = 0.1
+
+# Quantas detecções seguidas podem falhar antes de o contorno sumir da tela.
+# Evita que o contorno pisque por causa de um reflexo ou de um quadro tremido.
+DETECCOES_PERDIDAS_TOLERADAS = 3
 
 # Giro (graus, sentido horário) aplicado à imagem da câmera: 0, 90, 180 ou 270.
 # 90 deixa a imagem na VERTICAL (em pé), melhor para enquadrar uma folha. Se a
