@@ -13,11 +13,13 @@ atualizar. É o único lugar que conhece todas as peças.
 
 Fluxo típico:
     carregar() ou capturar_quadro()  ->  processar()  ->  (etapas chegam pelos _ao_*)
-    ->  salvar() / salvar_texto()
+    ->  salvar() / salvar_texto() / salvar_pdf()
 """
 
 import os
 import time
+from queue import Empty, Queue
+from threading import Thread
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
@@ -32,8 +34,8 @@ from interface.estado import Estado
 from interface.painel_lateral import PainelLateral
 from interface.processamento import ProcessadorDocumento
 from interface.tema import CARTOES_PROCESSO, COR_FUNDO, aplicar_tema_ttk
-from nucleo.imagem import desenhar_contorno
 from nucleo.ocr import CONFIANCA_MINIMA
+from nucleo.pdf import gerar_pdf_pesquisavel
 
 
 class AplicativoScanner:
@@ -67,6 +69,7 @@ class AplicativoScanner:
             ao_processar=self.processar,
             ao_salvar=self.salvar,
             ao_salvar_texto=self.salvar_texto,
+            ao_salvar_pdf=self.salvar_pdf,
             ao_texto_editado=self._atualizar_botoes,
         )
         self.area.pack(side="left", fill="both", expand=True)
@@ -75,7 +78,6 @@ class AplicativoScanner:
         self.camera = ControladorCamera(
             self.raiz,
             ao_quadro=self._ao_quadro_camera,
-            ao_etapas=self._ao_etapas_camera,
             ao_falha=self._ao_falha_camera,
         )
         self.processador = ProcessadorDocumento(
@@ -88,6 +90,7 @@ class AplicativoScanner:
             ao_erro=self._ao_erro,
         )
 
+        self._gerando_pdf = False   # True enquanto o PDF é gerado em segundo plano
         self._atualizar_botoes()
 
     # ------------------------------------------------------------ estado dos botões
@@ -99,7 +102,7 @@ class AplicativoScanner:
         está ligada e se há imagem carregada (a câmera ligada não conta, porque
         a imagem é só a prévia).
         """
-        ocupado = self.processador.ocupado
+        ocupado = self.processador.ocupado or self._gerando_pdf
         camera_ativa = self.camera.ativa
         tem_imagem = self.estado.imagem is not None and not camera_ativa
 
@@ -132,21 +135,30 @@ class AplicativoScanner:
         self.estado.imagem = None
         self.estado.nome_arquivo = ""
         self._limpar_resultados()
+        self.area.modo_camera(True)   # tela única: só a imagem da câmera
         self.area.limpar_imagens(("original",), "Inicializando câmera…")
 
-        self.painel.definir_status("Câmera iniciada. Posicione a folha no enquadramento.")
+        self.painel.definir_status("Câmera iniciada. Enquadre a folha com os quatro cantos "
+                                   "visíveis e clique em Capturar quadro.")
         self._atualizar_botoes()
         self.camera.iniciar_previa()
 
     def parar_camera(self, atualizar_status=True):
-        """Desliga a câmera."""
+        """Desliga a câmera e volta ao layout normal das abas."""
+        estava_ativa = self.camera.ativa
         self.camera.parar()
+        if estava_ativa:
+            self.area.modo_camera(False)
         if atualizar_status:
             self.painel.definir_status("Câmera encerrada. Escolha uma imagem ou inicie a câmera.")
         self._atualizar_botoes()
 
     def capturar_quadro(self):
-        """Congela o quadro atual da câmera e o processa."""
+        """Congela o quadro atual da câmera e só então o processa.
+
+        Ao vivo nada é processado: o processamento completo (detecção,
+        perspectiva e OCR) roda uma única vez, sobre o quadro capturado.
+        """
         quadro = self.camera.quadro_atual  # já é uma cópia
         if not self.camera.ativa or quadro is None:
             return
@@ -155,38 +167,12 @@ class AplicativoScanner:
 
         self.estado.imagem = quadro
         self.estado.nome_arquivo = time.strftime("captura_%Y%m%d_%H%M%S.jpg")
-        # A prévia ao vivo usa só as passadas rápidas. No quadro congelado a
-        # detecção completa roda (inclusive a de baixo contraste); se ainda assim
-        # falhar, dá para marcar a folha com Ajustar cantos.
+        # Se a detecção falhar, dá para marcar a folha com Ajustar cantos.
         self._iniciar_processamento(None)
 
-    def _ao_quadro_camera(self, quadro, cantos):
-        """Chegou um quadro novo: mostra a imagem, com o contorno se a folha foi achada."""
-        if cantos is not None:
-            self.area.mostrar("original", desenhar_contorno(quadro, cantos))
-        else:
-            self.area.mostrar("original", quadro)
-
-    def _ao_etapas_camera(self, etapas):
-        """Uma análise terminou: atualiza os cartões das etapas e a dica de status.
-
-        Só os cartões da aba atual são atualizados (os escondidos não gastam
-        processamento). Sem folha, as etapas do documento mostram o aviso.
-        """
-        encontrou = etapas["digitalizada"] is not None
-        if encontrou:
-            self.painel.definir_status("Documento detectado. Capture o quadro para digitalizar.")
-        else:
-            self.painel.definir_status("Aponte para uma folha com os quatro cantos visíveis.")
-
-        visiveis = self.area.cartoes_visiveis()
-        for chave in ("contorno", "cinza", "desfocada", "binaria", "digitalizada", "pb"):
-            if chave not in visiveis:
-                continue
-            if etapas[chave] is not None:
-                self.area.mostrar(chave, etapas[chave])
-            else:
-                self.area.limpar_imagens((chave,), "Documento não detectado")
+    def _ao_quadro_camera(self, quadro):
+        """Chegou um quadro novo da câmera: só mostra a imagem (sem processar)."""
+        self.area.mostrar("original", quadro)
 
     def _ao_falha_camera(self, titulo, mensagem):
         """A câmera não abriu ou falhou durante o uso (já está desligada)."""
@@ -382,3 +368,63 @@ class AplicativoScanner:
 
         Image.fromarray(para_rgb(imagem)).save(caminho, "PNG")
         messagebox.showinfo("Pronto", f"Salvo em:\n{caminho}")
+
+    def salvar_pdf(self):
+        """Salva o documento digitalizado como PDF pesquisável.
+
+        O PDF tem a imagem colorida do documento e, por cima, o texto do OCR
+        invisível (dá para buscar e copiar). Gerar o PDF roda o Tesseract de
+        novo (alguns segundos), então o trabalho vai para uma thread separada
+        e a janela não trava.
+        """
+        imagem = self.estado.digitalizada
+        if imagem is None:
+            messagebox.showwarning("Aviso", "Processe a imagem antes de salvar.")
+            return
+        if self._gerando_pdf:
+            return
+
+        nome_base = os.path.splitext(self.estado.nome_arquivo or "documento")[0]
+        caminho = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("PDF", "*.pdf")],
+            initialfile=f"scan_{nome_base}.pdf",
+        )
+        if not caminho:
+            return
+
+        fila = Queue()
+
+        def trabalho():
+            """Executado na thread separada: gera e grava o PDF."""
+            try:
+                dados = gerar_pdf_pesquisavel(imagem.copy())
+                with open(caminho, "wb") as arquivo:
+                    arquivo.write(dados)
+                fila.put(("ok", caminho))
+            except Exception as erro:
+                fila.put(("erro", str(erro)))
+
+        def acompanhar():
+            """Na thread da janela: espera a thread terminar e avisa o usuário."""
+            try:
+                tipo, dados = fila.get_nowait()
+            except Empty:
+                self.raiz.after(100, acompanhar)
+                return
+            self._gerando_pdf = False
+            self.painel.encerrar_progresso()
+            self._atualizar_botoes()
+            if tipo == "ok":
+                self.painel.definir_status("PDF pesquisável salvo.")
+                messagebox.showinfo("Pronto", f"PDF pesquisável salvo em:\n{dados}")
+            else:
+                self.painel.definir_status("Falha ao gerar o PDF.")
+                messagebox.showerror("Erro", f"Não foi possível gerar o PDF:\n{dados}")
+
+        self._gerando_pdf = True
+        self.painel.definir_status("Gerando PDF pesquisável…")
+        self.painel.iniciar_progresso()
+        self._atualizar_botoes()
+        Thread(target=trabalho, daemon=True).start()
+        self.raiz.after(100, acompanhar)

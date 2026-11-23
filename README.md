@@ -16,17 +16,19 @@ A aplicação utiliza Python, OpenCV e Tkinter para carregar imagens e visualiza
 - ⏹️ **Ajuste manual dos quatro cantos** dá a opção de ajustar os cantos da imagem manualmente, caso o documento não seja detectado.
 - 🔤 **OCR com Tesseract:** extrai o texto testando versões da imagem e modos de leitura.
 - 🔄 **Girar a imagem:** botões de 90° e 180° para fotos de cabeça para baixo ou de lado.
-- 📷 **Câmera ao vivo:** enquanto a câmera filma, todas as etapas (contorno, cinza, blur, threshold, documento digitalizado e P&B) aparecem **simultaneamente** nos cartões. A leitura e a análise rodam em threads separadas, então a janela não trava (ritmos ajustáveis em `nucleo/configuracao.py`). O OCR roda ao capturar o quadro.
+- 📷 **Câmera ao vivo:** uma tela única mostra só a imagem da câmera, para enquadrar a folha. Nada é processado ao vivo: ao clicar em **Capturar quadro**, a imagem é congelada e o processamento completo (detecção, perspectiva e OCR) roda uma única vez sobre ela. A leitura da câmera roda numa thread separada, então a janela não trava.
+- 📑 **PDF pesquisável:** exporta o documento digitalizado como PDF com a imagem colorida e o texto do OCR invisível por cima: o arquivo fica igual ao papel, mas dá para buscar (Ctrl+F), selecionar e copiar o texto.
 - 🖥️ **Interface gráfica:** abas para ver as etapas do processamento, imagens que acompanham o tamanho da janela e caixa de texto editável.
 
 ## 🧭 Como usar
 
-1. **Entrada da imagem:** clique em **Escolher arquivo** ou em **Câmera ao vivo** (a prévia mostra o contorno da folha; use **Capturar quadro** para congelar a imagem).
+1. **Entrada da imagem:** clique em **Escolher arquivo** ou em **Câmera ao vivo** (a tela mostra só a imagem da câmera; enquadre a folha e use **Capturar quadro** para congelar e processar).
 2. Se a foto estiver de cabeça para baixo ou de lado, use **Girar imagem** (90° esq., 180°, 90° dir.). Os resultados anteriores são limpos.
 3. Clique em **Processar**. O documento é detectado, corrigido e lido pelo OCR em segundo plano, com a barra de progresso na lateral.
    - Se o contorno estiver errado (ou não aparecer), clique em **Ajustar cantos** e arraste os 4 círculos até os cantos da folha.
 4. Use as **abas** para escolher o que ver: _Original + pré-processamento_, _Original + digitalizada_ ou _Todos os processos_.
-5. Corrija o texto na caixa **Texto extraído**, se precisar, e use **Salvar imagem (cor)**, **Salvar imagem (P&B)** ou **Salvar texto (.txt)**.
+5. Corrija o texto na caixa **Texto extraído**, se precisar, e use **Salvar imagem (cor)**, **Salvar imagem (P&B)**, **Salvar texto (.txt)** ou **Salvar PDF pesquisável**.
+   - O PDF pesquisável roda o OCR de novo, para saber a posição de cada palavra na página; por isso as correções feitas na caixa de texto valem para o `.txt`, não para o PDF.
 
 ## 🛠️ Tecnologias utilizadas
 

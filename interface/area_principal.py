@@ -21,10 +21,11 @@ class AreaPrincipal(tk.Frame):
     Assim como o painel lateral, recebe as funções `ao_*` de quem a criou.
     """
 
-    def __init__(self, pai, ao_processar, ao_salvar, ao_salvar_texto, ao_texto_editado):
+    def __init__(self, pai, ao_processar, ao_salvar, ao_salvar_texto, ao_salvar_pdf,
+                 ao_texto_editado):
         """Monta a área. As funções `ao_*` são chamadas quando o usuário:
         clica em Processar, em Salvar imagem (recebe "cor" ou "pb"), em Salvar
-        texto, ou digita na caixa de texto.
+        texto, em Salvar PDF pesquisável, ou digita na caixa de texto.
         """
         super().__init__(pai, bg=COR_FUNDO, padx=24, pady=20)
 
@@ -38,6 +39,7 @@ class AreaPrincipal(tk.Frame):
         # --- Abas: escolhem quais etapas aparecem ------------------------------
         abas = tk.Frame(self, bg=COR_FUNDO)
         abas.grid(row=1, column=0, sticky="w", pady=(6, 16))
+        self._abas = abas
         self._botoes_modo = {}
         for modo in MODOS:
             botao = tk.Button(
@@ -54,6 +56,7 @@ class AreaPrincipal(tk.Frame):
         # --- Ações abaixo das imagens ---------------------------------------------
         acoes = tk.Frame(self, bg=COR_FUNDO)
         acoes.grid(row=3, column=0, pady=18)
+        self._acoes = acoes
 
         self.botao_processar = criar_botao(acoes, "Processar", ao_processar,
                                            COR_PRIMARIA, COR_TEXTO, padx=30)
@@ -75,6 +78,10 @@ class AreaPrincipal(tk.Frame):
                                               ao_salvar_texto, COR_SECUNDARIA, "white")
         self.botao_salvar_texto.pack(side="left", padx=6)
 
+        self.botao_salvar_pdf = criar_botao(self._frame_salvar, "Salvar PDF pesquisável",
+                                            ao_salvar_pdf, COR_SECUNDARIA, "white")
+        self.botao_salvar_pdf.pack(side="left", padx=6)
+
         # --- Texto extraído (aparece nas abas que o mostram) e editável ------------
         self._quadro_texto = tk.LabelFrame(self, text="Texto extraído", bg=COR_FUNDO,
                                            fg=COR_SECUNDARIA, font=("Arial", 10, "bold"),
@@ -93,6 +100,7 @@ class AreaPrincipal(tk.Frame):
         self._caixa_texto.bind("<KeyRelease>", lambda _e: ao_texto_editado())
 
         self._modo = MODOS[0].chave
+        self._camera_ativa = False
         self.selecionar_modo(self._modo)
 
     # ------------------------------------------------------------------------ abas
@@ -118,6 +126,8 @@ class AreaPrincipal(tk.Frame):
 
     def _atualizar_layout(self):
         """Mostra os cartões da aba e esconde/mostra a caixa de texto e o "Salvar"."""
+        if self._camera_ativa:
+            return  # o modo câmera tem layout próprio (ver modo_camera)
         modo = self._modo_atual()
         self.visualizacao.exibir_cartoes(modo.cartoes)
 
@@ -131,9 +141,23 @@ class AreaPrincipal(tk.Frame):
         else:
             self._frame_salvar.pack_forget()
 
-    def cartoes_visiveis(self):
-        """Chaves dos cartões que aparecem na aba atual (a câmera só atualiza esses)."""
-        return self._modo_atual().cartoes
+    def modo_camera(self, ativo):
+        """Liga/desliga a tela única da câmera ao vivo.
+
+        Com a câmera ligada só aparece o cartão de entrada, ocupando toda a
+        área (sem abas, botões de ação nem texto): é a tela para enquadrar a
+        folha e capturar o quadro. Ao desligar, o layout da aba volta.
+        """
+        self._camera_ativa = ativo
+        if ativo:
+            self._abas.grid_remove()
+            self._acoes.grid_remove()
+            self._quadro_texto.grid_remove()
+            self.visualizacao.exibir_cartoes(("original",))
+        else:
+            self._abas.grid()
+            self._acoes.grid()
+            self._atualizar_layout()
 
     # ------------------------------------------------------------ imagens e texto
 
@@ -161,5 +185,6 @@ class AreaPrincipal(tk.Frame):
         definir_estado_botao(self.botao_processar, not ocupado and tem_imagem)
         definir_estado_botao(self.botao_salvar, not ocupado and tem_digitalizada)
         definir_estado_botao(self.botao_salvar_pb, not ocupado and tem_pb)
+        definir_estado_botao(self.botao_salvar_pdf, not ocupado and tem_digitalizada)
         definir_estado_botao(self.botao_salvar_texto,
                              not ocupado and bool(self.texto_atual().strip()))
